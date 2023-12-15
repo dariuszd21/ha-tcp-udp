@@ -78,7 +78,6 @@ func openLogFile(path string, flags int, mode int) *os.File {
 }
 
 func newLogger(printLogs bool) *Logger {
-	// TODO: Read from configuration file
 	logPath := os.TempDir()
 	flags := os.O_APPEND | os.O_CREATE | os.O_WRONLY
 	mode := 0600

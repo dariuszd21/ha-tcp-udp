@@ -59,7 +59,6 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 	server.connections.Add(1)
 	defer server.closeConnection(connection)
 	buf := make([]byte, 1024)
-	// TODO: Add timeout
 	read_bytes, err := connection.Read(buf)
 
 	if err != nil {

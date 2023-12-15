@@ -1,4 +1,4 @@
-package tcp_server
+package udp_server
 
 import (
 	"encoding/json"
@@ -10,24 +10,25 @@ import (
 	"time"
 )
 
-type TCPServer struct {
+type UDPServer struct {
 	config      *server_if.ServerConfig
-	listener    *net.Listener
+	listener    *net.PacketConn
 	connections atomic.Uint64
 }
 
-func (server *TCPServer) Bind() {
-	listener, error := net.Listen("tcp",
+func (server *UDPServer) Bind() {
+	listener, error := net.ListenPacket("udp",
 		fmt.Sprintf("%s:%d", server.config.Host, server.config.Port),
 	)
 	if error != nil {
 		logger.Fatal(error.Error())
 	}
-	logger.Debugf("Starting TCP server on %s:%d", server.config.Host, server.config.Port)
+	logger.Debugf("Starting UDP server on %s:%d", server.config.Host, server.config.Port)
 	server.listener = &listener
+
 }
 
-func (server *TCPServer) Serve() {
+func (server *UDPServer) Serve() {
 	if server.listener == nil {
 		logger.Fatal("Cannot serve connections. bind() forgetten?")
 	}
@@ -47,41 +48,41 @@ func (server *TCPServer) Serve() {
 				time.Sleep(time.Second)
 			}
 		}
-		conn, err := (*server.listener).Accept()
+		buf := make([]byte, 1024)
+		n_bytes, addr, err := (*server.listener).ReadFrom(buf)
 		if err != nil {
-			logger.Errorf("Cannot accept connection: %s", err.Error())
+			logger.Errorf("Cannot read from: %s", err.Error())
+			return
 		}
-		go server.handleConnection(conn, session_id_chan)
+		init_message, err := readInitMessage(buf, n_bytes)
+		go server.handleConnection(addr, init_message, session_id_chan)
 	}
 }
 
-func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel chan server_if.SessionIdOps) {
-	logger.Debug("Connection opened")
-	server.connections.Add(1)
-	defer server.closeConnection(connection)
-	buf := make([]byte, 1024)
-	// TODO: Add timeout
-	read_bytes, err := connection.Read(buf)
+func readInitMessage(buff []byte, n_bytes int) (*server_if.InitMessage, error) {
 
-	if err != nil {
-		logger.Errorf("Cannot handle connection: %s", connection.RemoteAddr())
-		return
-	}
-
-	if read_bytes == 0 {
+	if n_bytes == 0 {
 		logger.Error("Bytes not read. Expected message")
-		return
+		return nil, nil
 	}
 
 	var init_message server_if.InitMessage
-	err = json.Unmarshal(buf[:read_bytes], &init_message)
+	err := json.Unmarshal(buff[:n_bytes], &init_message)
 
 	if err != nil {
 		logger.Error("Cannot decode bytes")
 		logger.Error(err.Error())
-		logger.Debugf("%s", buf)
-		return
+		logger.Debugf("%s", buff)
+		return nil, err
 	}
+
+	return &init_message, nil
+}
+
+func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if.InitMessage, assignIdChannel chan server_if.SessionIdOps) {
+	logger.Debug("Connection opened")
+	server.connections.Add(1)
+	defer server.closeConnection()
 
 	if init_message.SessionId != 0 {
 		logger.Debugf("Session: %d reestablished", init_message.SessionId)
@@ -98,7 +99,7 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 			logger.Errorf("Cannot encode session establishment: %s", session_est)
 			return
 		}
-		_, err = connection.Write(session_est)
+		_, err = (*server.listener).WriteTo(session_est, addr)
 		if err != nil {
 			logger.Error("Cannot send session establishment message")
 			logger.Debug(err.Error())
@@ -113,7 +114,7 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 			logger.Errorf("Cannot encode response: %d", i)
 			return
 		}
-		_, err = connection.Write(write_buff)
+		_, err = (*server.listener).WriteTo(write_buff, addr)
 		if err != nil {
 			logger.Errorf("Cannot send response: %s", err)
 			return
@@ -124,14 +125,13 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 	}
 }
 
-func (server *TCPServer) closeConnection(connection net.Conn) {
+func (server *UDPServer) closeConnection() {
 	logger.Debug("Closing connection")
 	server.connections.Add(^(uint64(0)))
-	connection.Close()
 }
 
-func CreateServer(server_config *server_if.ServerConfig) *TCPServer {
-	return &TCPServer{
+func CreateServer(server_config *server_if.ServerConfig) *UDPServer {
+	return &UDPServer{
 		config: server_config,
 	}
 }

@@ -13,17 +13,19 @@ type Logger struct {
 }
 
 func (l* Logger) Debug(log_entry string) {
-	if l.printLogs {
-		log.Print(log_entry)
-	}
+	l.printLogsToConsole(log_entry)
 	l.debugLogger.Print(log_entry)
 }
 
 func (l* Logger) Error(log_entry string) {
+	l.printLogsToConsole(log_entry)
+	l.erorLogger.Print(log_entry)
+}
+
+func (l* Logger) printLogsToConsole(log_entry string) {
 	if l.printLogs {
 		log.Print(log_entry)
 	}
-	l.erorLogger.Print(log_entry)
 }
 
 func openLogFile(path string, flags int, mode int) *os.File {
@@ -45,6 +47,7 @@ func NewLogger(printLogs bool) *Logger {
 	return &Logger{
 		erorLogger: log.New(error_logfile, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
 		debugLogger: log.New(debug_logfile, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile),
+		printLogs: printLogs,
 	}
 }
 

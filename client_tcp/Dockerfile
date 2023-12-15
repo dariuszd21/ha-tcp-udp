@@ -6,23 +6,16 @@ WORKDIR /app
 COPY go.mod ./
 
 COPY main.go ./
-ADD logger /app/logger
-ADD server_if /app/server_if
-ADD tcp_server /app/tcp_server
-ADD udp_server /app/udp_server
 
-RUN GOOS=linux go build -o /ha-tcp-udp
+RUN GOOS=linux go build -o /tcp-client
 
 # Deploy the application binary into a lean image
 FROM gcr.io/distroless/base-debian12 AS build-release-stage
 
 WORKDIR /
 
-COPY --from=build-stage /ha-tcp-udp /ha-tcp-udp
-
-EXPOSE 12000
-EXPOSE 13000
+COPY --from=build-stage /tcp-client /tcp-client
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/ha-tcp-udp"]
+ENTRYPOINT ["/tcp-client"]

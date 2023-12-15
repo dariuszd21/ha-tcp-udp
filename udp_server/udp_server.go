@@ -39,8 +39,6 @@ func (server *UDPServer) Serve() {
 	go server_if.AssignSessionId(session_id_chan)
 
 	for {
-		// TODO: Add handling sigterm
-
 		if server.config.ConnectionsLimit != 0 {
 			// Check if connection limit is already reached
 			if server.connections.Load() >= server.config.ConnectionsLimit {

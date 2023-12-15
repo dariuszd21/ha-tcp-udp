@@ -121,3 +121,7 @@ func Fatalf(format_string string, args ...any) {
 func SetLogLevel(log_level int) {
 	LOGGER.setLogLevel(log_level)
 }
+
+func SetLogPrint(print bool) {
+	LOGGER.printLogs = print
+}

@@ -10,21 +10,15 @@ import (
 	"time"
 )
 
-type ServerConfig struct {
-	TcpHost          string
-	TcpPort          int
-	ConnectionsLimit uint64 // 0 means unlimited
-}
-
 type TCPServer struct {
-	config      *ServerConfig
+	config      *server_if.ServerConfig
 	listener    *net.Listener
 	connections atomic.Uint64
 }
 
 func (server *TCPServer) Bind() {
 	listener, error := net.Listen("tcp",
-		fmt.Sprintf("%s:%d", server.config.TcpHost, server.config.TcpPort),
+		fmt.Sprintf("%s:%d", server.config.Host, server.config.Port),
 	)
 	if error != nil {
 		logger.Fatal(error.Error())
@@ -135,7 +129,7 @@ func (server *TCPServer) closeConnection(connection net.Conn) {
 	connection.Close()
 }
 
-func CreateServer(server_config *ServerConfig) *TCPServer {
+func CreateServer(server_config *server_if.ServerConfig) *TCPServer {
 	return &TCPServer{
 		config: server_config,
 	}

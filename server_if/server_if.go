@@ -4,6 +4,12 @@ import (
 	"ha-tcp-udp/logger"
 )
 
+type ServerConfig struct {
+	Host             string
+	Port             int
+	ConnectionsLimit uint64 // 0 means unlimited
+}
+
 type InitMessage struct {
 	SessionId   uint64 `json:"session_id"`
 	LastMessage uint64 `json:"last_message"`

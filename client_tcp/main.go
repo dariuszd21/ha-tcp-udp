@@ -15,7 +15,6 @@ type InitMessage struct {
 	LastMessage uint64 `json:"last_message"`
 }
 
-
 type SessionEstablishment struct {
 	SessionId uint64 `json:"session_id"`
 }
@@ -23,14 +22,14 @@ type SessionEstablishment struct {
 func runStable(host string, port int, connNumber int) {
 	for i := 0; i < connNumber; i++ {
 		i := i
-		go func ()  {
+		go func() {
 			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-    		if err != nil {
-        		fmt.Println("Error:", err)
-        		return
-    		}
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
 			fmt.Println("Connection established", i)
-    		defer conn.Close()
+			defer conn.Close()
 			handshake_buff, err := json.Marshal(&InitMessage{})
 			if err != nil {
 				fmt.Println("Cannot encode init message")
@@ -39,7 +38,7 @@ func runStable(host string, port int, connNumber int) {
 			if err != nil {
 				fmt.Println("Cannot send init message")
 			}
-			
+
 			buff := make([]byte, 1024)
 			n_bytes, err := conn.Read(buff)
 			if err != nil {
@@ -49,6 +48,7 @@ func runStable(host string, port int, connNumber int) {
 			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
 			if err != nil {
 				fmt.Println("Cannot read init message", err)
+				fmt.Println(string(buff))
 				return
 			}
 			for {
@@ -61,6 +61,71 @@ func runStable(host string, port int, connNumber int) {
 	}
 }
 
+func runReconnecting(host string, port int, connNumber int) {
+	for i := 0; i < connNumber; i++ {
+		i := i
+		go func() {
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			fmt.Println("Connection established", i)
+			defer conn.Close()
+			handshake_buff, err := json.Marshal(&InitMessage{})
+			if err != nil {
+				fmt.Println("Cannot encode init message")
+			}
+			_, err = conn.Write(handshake_buff)
+			if err != nil {
+				fmt.Println("Cannot send init message")
+			}
+
+			buff := make([]byte, 1024)
+			n_bytes, err := conn.Read(buff)
+			if err != nil {
+				fmt.Println("Cannot read session establishment")
+			}
+			var sessionEstablishment SessionEstablishment
+			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
+			fmt.Println(sessionEstablishment.SessionId)
+
+			if err != nil {
+				fmt.Println("Cannot read init message", err)
+				return
+			}
+			for read_nr := 1; ; read_nr++ {
+				if read_nr%100 == 0 {
+					fmt.Println("Reestablished on", read_nr)
+					conn.Close()
+					conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+					if err != nil {
+						fmt.Println("Error:", err)
+						return
+					}
+					defer conn.Close()
+					init_msg := InitMessage{
+						SessionId: sessionEstablishment.SessionId,
+						LastMessage: uint64(read_nr),
+					}
+					handshake_buff, err := json.Marshal(&init_msg)
+					if err != nil {
+						fmt.Println("Cannot encode init message")
+					}
+					_, err = conn.Write(handshake_buff)
+					if err != nil {
+						fmt.Println("Cannot send init message")
+					}
+				}
+
+				_, err = conn.Read(buff)
+				if err != nil {
+					fmt.Println("Cannot read from server", err)
+				}
+			}
+		}()
+	}
+}
 func main() {
 	stable := flag.Int("stable", 0, "number of stable connections")
 	reconnecting := flag.Int("reconnecting", 0, "number of reconnecting connections")
@@ -76,17 +141,18 @@ func main() {
 	fmt.Printf("Connection host %s:%d\n", *host, *port)
 
 	sigs := make(chan os.Signal, 1)
-    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-    done := make(chan bool, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan bool, 1)
 
 	runStable(*host, *port, *stable)
+	runReconnecting(*host, *port, *reconnecting)
 
-    go func() {
-        sig := <-sigs
-    	fmt.Printf("Received signal: %d\n", sig)
-        done <- true
-    }()
+	go func() {
+		sig := <-sigs
+		fmt.Printf("Received signal: %d\n", sig)
+		done <- true
+	}()
 
-    <-done
-    fmt.Println("exiting...")
+	<-done
+	fmt.Println("exiting...")
 }

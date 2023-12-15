@@ -54,6 +54,7 @@ func (server *TCPServer) Serve() {
 }
 
 func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel chan server_if.SessionIdOps) {
+	const DELAY_BETWEEN_MESAGES = 50*time.Millisecond
 	logger.Debug("Connection opened")
 	server.connections.Add(1)
 	defer server.closeConnection(connection)
@@ -102,6 +103,7 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 			logger.Debug(err.Error())
 			return
 		}
+		time.Sleep(DELAY_BETWEEN_MESAGES)
 	}
 
 	i := init_message.LastMessage + 1
@@ -117,7 +119,7 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 			return
 		}
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(DELAY_BETWEEN_MESAGES)
 		i++
 	}
 }

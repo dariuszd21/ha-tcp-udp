@@ -53,6 +53,10 @@ func (server *UDPServer) Serve() {
 			return
 		}
 		init_message, err := readInitMessage(buf, n_bytes)
+		if err != nil {
+			logger.Error("Cannot read init message")
+			return
+		}
 		go server.handleConnection(addr, init_message, session_id_chan)
 	}
 }
@@ -78,6 +82,8 @@ func readInitMessage(buff []byte, n_bytes int) (*server_if.InitMessage, error) {
 }
 
 func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if.InitMessage, assignIdChannel chan server_if.SessionIdOps) {
+	const DELAY_BETWEEN_MESAGES = 50*time.Millisecond
+
 	logger.Debug("Connection opened")
 	server.connections.Add(1)
 	defer server.closeConnection()
@@ -103,6 +109,7 @@ func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if
 			logger.Debug(err.Error())
 			return
 		}
+		time.Sleep(DELAY_BETWEEN_MESAGES)
 	}
 
 	i := init_message.LastMessage + 1
@@ -118,7 +125,7 @@ func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if
 			return
 		}
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(DELAY_BETWEEN_MESAGES)
 		i++
 	}
 }

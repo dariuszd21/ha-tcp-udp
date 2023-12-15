@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -66,6 +67,8 @@ func runReconnecting(host string, port int, connNumber int) {
 		i := i
 		go func() {
 			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+			random_retry := 50 + rand.Intn(1000)
+			fmt.Printf("Client will retry every %d packets\n", random_retry)
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
@@ -95,7 +98,7 @@ func runReconnecting(host string, port int, connNumber int) {
 				return
 			}
 			for read_nr := 1; ; read_nr++ {
-				if read_nr%100 == 0 {
+				if read_nr%random_retry == 0 {
 					fmt.Println("Reestablished on", read_nr)
 					conn.Close()
 					conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
@@ -126,6 +129,97 @@ func runReconnecting(host string, port int, connNumber int) {
 		}()
 	}
 }
+
+
+func runDropping(host string, port int, connNumber int) {
+	done_channel := make(chan bool)
+	for i := 0; i < connNumber; i++ {
+		i := i
+		go func() {
+			random_retry := 50 + rand.Intn(1000)
+			fmt.Printf("Client will drop after %d packets\n", random_retry)
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			fmt.Println("Connection established", i)
+			defer conn.Close()
+			handshake_buff, err := json.Marshal(&InitMessage{})
+			if err != nil {
+				fmt.Println("Cannot encode init message")
+			}
+			_, err = conn.Write(handshake_buff)
+			if err != nil {
+				fmt.Println("Cannot send init message")
+			}
+
+			buff := make([]byte, 1024)
+			n_bytes, err := conn.Read(buff)
+			if err != nil {
+				fmt.Println("Cannot read session establishment")
+			}
+			var sessionEstablishment SessionEstablishment
+			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
+			if err != nil {
+				fmt.Println("Cannot read init message", err)
+				fmt.Println(string(buff))
+				return
+			}
+			for packet_nr := 0; packet_nr < random_retry; packet_nr++ {
+				_, err = conn.Read(buff)
+				if err != nil {
+					fmt.Println("Cannot read from server", err)
+				}
+			}
+			done_channel <- true
+		}()
+	}
+
+	for {
+		<-done_channel
+		go func() {
+			random_retry := 50 + rand.Intn(1000)
+			fmt.Printf("Client will drop after %d packets\n", random_retry)
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			defer conn.Close()
+			handshake_buff, err := json.Marshal(&InitMessage{})
+			if err != nil {
+				fmt.Println("Cannot encode init message")
+			}
+			_, err = conn.Write(handshake_buff)
+			if err != nil {
+				fmt.Println("Cannot send init message")
+			}
+
+			buff := make([]byte, 1024)
+			n_bytes, err := conn.Read(buff)
+			if err != nil {
+				fmt.Println("Cannot read session establishment")
+			}
+			var sessionEstablishment SessionEstablishment
+			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
+			if err != nil {
+				fmt.Println("Cannot read init message", err)
+				fmt.Println(string(buff))
+				return
+			}
+			for packet_nr := 0; packet_nr < random_retry; packet_nr++ {
+				_, err = conn.Read(buff)
+				if err != nil {
+					fmt.Println("Cannot read from server", err)
+				}
+			}
+			done_channel <- true
+		}()
+
+	}
+}
+
 func main() {
 	stable := flag.Int("stable", 0, "number of stable connections")
 	reconnecting := flag.Int("reconnecting", 0, "number of reconnecting connections")
@@ -144,8 +238,9 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	done := make(chan bool, 1)
 
-	runStable(*host, *port, *stable)
-	runReconnecting(*host, *port, *reconnecting)
+	go runStable(*host, *port, *stable)
+	go runReconnecting(*host, *port, *reconnecting)
+	go runDropping(*host, *port, *dropping)
 
 	go func() {
 		sig := <-sigs

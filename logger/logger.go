@@ -77,7 +77,7 @@ func openLogFile(path string, flags int, mode int) *os.File {
 	return logfile
 }
 
-func NewLogger(printLogs bool) *Logger {
+func newLogger(printLogs bool) *Logger {
 	// TODO: Read from configuration file
 	logPath := os.TempDir()
 	flags := os.O_APPEND | os.O_CREATE | os.O_WRONLY
@@ -92,7 +92,7 @@ func NewLogger(printLogs bool) *Logger {
 	}
 }
 
-var LOGGER *Logger = NewLogger(true)
+var LOGGER *Logger = newLogger(false)
 
 func Debug(log_entry string) {
 	LOGGER.Debug(log_entry)

@@ -12,7 +12,7 @@ import (
 
 type UDPServer struct {
 	config      *server_if.ServerConfig
-	listener    *net.PacketConn
+	listener    net.PacketConn
 	connections atomic.Uint64
 }
 
@@ -24,7 +24,7 @@ func (server *UDPServer) Bind() {
 		logger.Fatal(error.Error())
 	}
 	logger.Debugf("Starting UDP server on %s:%d", server.config.Host, server.config.Port)
-	server.listener = &listener
+	server.listener = listener
 
 }
 
@@ -33,7 +33,7 @@ func (server *UDPServer) Serve() {
 		logger.Fatal("Cannot serve connections. bind() forgetten?")
 	}
 
-	defer (*server.listener).Close()
+	defer server.listener.Close()
 
 	session_id_chan := make(chan server_if.SessionIdOps)
 	go server_if.AssignSessionId(session_id_chan)
@@ -47,7 +47,7 @@ func (server *UDPServer) Serve() {
 			}
 		}
 		buf := make([]byte, 1024)
-		n_bytes, addr, err := (*server.listener).ReadFrom(buf)
+		n_bytes, addr, err := server.listener.ReadFrom(buf)
 		if err != nil {
 			logger.Errorf("Cannot read from: %s", err.Error())
 			return
@@ -62,9 +62,8 @@ func (server *UDPServer) Serve() {
 }
 
 func readInitMessage(buff []byte, n_bytes int) (*server_if.InitMessage, error) {
-
 	if n_bytes == 0 {
-		logger.Error("Bytes not read. Expected message")
+		logger.Error("No bytes read")
 		return nil, nil
 	}
 
@@ -82,7 +81,7 @@ func readInitMessage(buff []byte, n_bytes int) (*server_if.InitMessage, error) {
 }
 
 func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if.InitMessage, assignIdChannel chan server_if.SessionIdOps) {
-	const DELAY_BETWEEN_MESAGES = 50*time.Millisecond
+	const DELAY_BETWEEN_MESAGES = 50 * time.Millisecond
 
 	logger.Debug("Connection opened")
 	server.connections.Add(1)
@@ -103,7 +102,7 @@ func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if
 			logger.Errorf("Cannot encode session establishment: %s", session_est)
 			return
 		}
-		_, err = (*server.listener).WriteTo(session_est, addr)
+		_, err = server.listener.WriteTo(session_est, addr)
 		if err != nil {
 			logger.Error("Cannot send session establishment message")
 			logger.Debug(err.Error())
@@ -119,7 +118,7 @@ func (server *UDPServer) handleConnection(addr net.Addr, init_message *server_if
 			logger.Errorf("Cannot encode response: %d", i)
 			return
 		}
-		_, err = (*server.listener).WriteTo(write_buff, addr)
+		_, err = server.listener.WriteTo(write_buff, addr)
 		if err != nil {
 			logger.Errorf("Cannot send response: %s", err)
 			return

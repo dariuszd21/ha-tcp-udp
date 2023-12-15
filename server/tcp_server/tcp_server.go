@@ -12,7 +12,7 @@ import (
 
 type TCPServer struct {
 	config      *server_if.ServerConfig
-	listener    *net.Listener
+	listener    net.Listener
 	connections atomic.Uint64
 }
 
@@ -24,7 +24,7 @@ func (server *TCPServer) Bind() {
 		logger.Fatal(error.Error())
 	}
 	logger.Debugf("Starting TCP server on %s:%d", server.config.Host, server.config.Port)
-	server.listener = &listener
+	server.listener = listener
 }
 
 func (server *TCPServer) Serve() {
@@ -32,7 +32,7 @@ func (server *TCPServer) Serve() {
 		logger.Fatal("Cannot serve connections. bind() forgetten?")
 	}
 
-	defer (*server.listener).Close()
+	defer server.listener.Close()
 
 	session_id_chan := make(chan server_if.SessionIdOps)
 	go server_if.AssignSessionId(session_id_chan)
@@ -45,7 +45,7 @@ func (server *TCPServer) Serve() {
 				time.Sleep(time.Second)
 			}
 		}
-		conn, err := (*server.listener).Accept()
+		conn, err := server.listener.Accept()
 		if err != nil {
 			logger.Errorf("Cannot accept connection: %s", err.Error())
 		}
@@ -54,7 +54,7 @@ func (server *TCPServer) Serve() {
 }
 
 func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel chan server_if.SessionIdOps) {
-	const DELAY_BETWEEN_MESAGES = 50*time.Millisecond
+	const DELAY_BETWEEN_MESAGES = 50 * time.Millisecond
 	logger.Debug("Connection opened")
 	server.connections.Add(1)
 	defer server.closeConnection(connection)

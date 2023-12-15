@@ -10,9 +10,9 @@ import (
 )
 
 type ServerConfig struct {
-	tcp_host          string
-	tcp_port          int
-	connections_limit uint64 // 0 means no-limit
+	TcpHost          string
+	TcpPort          int
+	ConnectionsLimit uint64 // 0 means no-limit
 }
 
 type TCPServer struct {
@@ -21,9 +21,9 @@ type TCPServer struct {
 	connections atomic.Uint64
 }
 
-func (server *TCPServer) bind() {
+func (server *TCPServer) Bind() {
 	listener, error := net.Listen("tcp",
-		fmt.Sprintf("%s:%d", server.config.tcp_host, server.config.tcp_port),
+		fmt.Sprintf("%s:%d", server.config.TcpHost, server.config.TcpPort),
 	)
 	if error != nil {
 		logger.Fatal(error.Error())
@@ -31,7 +31,7 @@ func (server *TCPServer) bind() {
 	server.listener = &listener
 }
 
-func (server *TCPServer) serve() {
+func (server *TCPServer) Serve() {
 	if server.listener == nil {
 		logger.Fatal("Cannot serve connections. bind() forgetten?")
 	}
@@ -41,9 +41,9 @@ func (server *TCPServer) serve() {
 	for {
 		// TODO: Add handling sigterm
 
-		if server.config.connections_limit != 0 {
+		if server.config.ConnectionsLimit != 0 {
 			// Check if connection limit is already reached
-			if server.connections.Load() >= server.config.connections_limit {
+			if server.connections.Load() >= server.config.ConnectionsLimit {
 				logger.Debug("Server no longer accepts connections.")
 				time.Sleep(time.Second)
 			}

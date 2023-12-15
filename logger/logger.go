@@ -25,6 +25,13 @@ func (l *Logger) Debug(log_entry string) {
 	}
 }
 
+func (l *Logger) Debugf(format_string string, args ...any) {
+	if l.logLevel >= DEBUG {
+		l.printfLogsToConsole(format_string, args...)
+		l.debugLogger.Printf(format_string, args...)
+	}
+}
+
 func (l *Logger) Error(log_entry string) {
 	if l.logLevel >= ERROR {
 		l.printLogsToConsole(log_entry)
@@ -32,9 +39,22 @@ func (l *Logger) Error(log_entry string) {
 	}
 }
 
+func (l *Logger) Errorf(format_string string, args ...any) {
+	if l.logLevel >= ERROR {
+		l.printfLogsToConsole(format_string, args...)
+		l.erorLogger.Printf(format_string, args...)
+	}
+}
+
 func (l *Logger) printLogsToConsole(log_entry string) {
 	if l.printLogs {
 		log.Print(log_entry)
+	}
+}
+
+func (l *Logger) printfLogsToConsole(format string, rest ...any) {
+	if l.printLogs {
+		log.Printf(format, rest...)
 	}
 }
 
@@ -76,8 +96,24 @@ func Debug(log_entry string) {
 	LOGGER.Debug(log_entry)
 }
 
+func Debugf(format_string string, args ...any) {
+	LOGGER.Debugf(format_string, args...)
+}
+
 func Error(log_entry string) {
 	LOGGER.Error(log_entry)
+}
+
+func Errorf(format_string string, args ...any) {
+	LOGGER.Errorf(format_string, args...)
+}
+
+func Fatal(log_entry string) {
+	log.Fatal(log_entry)
+}
+
+func Fatalf(format_string string, args ...any) {
+	log.Fatalf(format_string, args...)
 }
 
 func SetLogLevel(log_level int) {

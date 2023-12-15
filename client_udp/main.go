@@ -48,16 +48,19 @@ func runStable(host string, port int, connNumber int) {
 			handshake_buff, err := json.Marshal(&InitMessage{})
 			if err != nil {
 				fmt.Println("Cannot encode init message")
+				return
 			}
 			_, err = conn.Write(handshake_buff)
 			if err != nil {
 				fmt.Println("Cannot send init message")
+				return
 			}
 
 			buff := make([]byte, 1024)
 			n_bytes, err := conn.Read(buff)
 			if err != nil {
 				fmt.Println("Cannot read session establishment")
+				return
 			}
 			var sessionEstablishment SessionEstablishment
 			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
@@ -70,6 +73,7 @@ func runStable(host string, port int, connNumber int) {
 				_, err = conn.Read(buff)
 				if err != nil {
 					fmt.Println("Cannot read from server", err)
+					return
 				}
 			}
 		}()
@@ -92,16 +96,19 @@ func runReconnecting(host string, port int, connNumber int) {
 			handshake_buff, err := json.Marshal(&InitMessage{})
 			if err != nil {
 				fmt.Println("Cannot encode init message")
+				return
 			}
 			_, err = conn.Write(handshake_buff)
 			if err != nil {
 				fmt.Println("Cannot send init message")
+				return
 			}
 
 			buff := make([]byte, 1024)
 			n_bytes, err := conn.Read(buff)
 			if err != nil {
 				fmt.Println("Cannot read session establishment")
+				return
 			}
 			var sessionEstablishment SessionEstablishment
 			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
@@ -125,16 +132,19 @@ func runReconnecting(host string, port int, connNumber int) {
 					handshake_buff, err := json.Marshal(&init_msg)
 					if err != nil {
 						fmt.Println("Cannot encode init message")
+						return
 					}
 					_, err = conn.Write(handshake_buff)
 					if err != nil {
 						fmt.Println("Cannot send init message")
+						return
 					}
 				}
 
 				_, err = conn.Read(buff)
 				if err != nil {
 					fmt.Println("Cannot read from server", err)
+					return
 				}
 			}
 		}()
@@ -158,16 +168,19 @@ func runDropping(host string, port int, connNumber int) {
 			handshake_buff, err := json.Marshal(&InitMessage{})
 			if err != nil {
 				fmt.Println("Cannot encode init message")
+				return
 			}
 			_, err = conn.Write(handshake_buff)
 			if err != nil {
 				fmt.Println("Cannot send init message")
+				return
 			}
 
 			buff := make([]byte, 1024)
 			n_bytes, err := conn.Read(buff)
 			if err != nil {
 				fmt.Println("Cannot read session establishment")
+				return
 			}
 			var sessionEstablishment SessionEstablishment
 			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
@@ -180,6 +193,7 @@ func runDropping(host string, port int, connNumber int) {
 				_, err = conn.Read(buff)
 				if err != nil {
 					fmt.Println("Cannot read from server", err)
+					return
 				}
 			}
 			done_channel <- true
@@ -200,16 +214,19 @@ func runDropping(host string, port int, connNumber int) {
 			handshake_buff, err := json.Marshal(&InitMessage{})
 			if err != nil {
 				fmt.Println("Cannot encode init message")
+				return
 			}
 			_, err = conn.Write(handshake_buff)
 			if err != nil {
 				fmt.Println("Cannot send init message")
+				return
 			}
 
 			buff := make([]byte, 1024)
 			n_bytes, err := conn.Read(buff)
 			if err != nil {
 				fmt.Println("Cannot read session establishment")
+				return
 			}
 			var sessionEstablishment SessionEstablishment
 			err = json.Unmarshal(buff[:n_bytes], &sessionEstablishment)
@@ -222,6 +239,7 @@ func runDropping(host string, port int, connNumber int) {
 				_, err = conn.Read(buff)
 				if err != nil {
 					fmt.Println("Cannot read from server", err)
+					return
 				}
 			}
 			done_channel <- true

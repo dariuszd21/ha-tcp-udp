@@ -19,7 +19,7 @@ func (l* Logger) Debug(log_entry string) {
 	l.debugLogger.Print(log_entry)
 }
 
-func (l* Logger) error(log_entry string) {
+func (l* Logger) Error(log_entry string) {
 	if l.printLogs {
 		log.Print(log_entry)
 	}

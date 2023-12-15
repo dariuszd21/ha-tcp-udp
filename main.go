@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	logger_obj := logger.NewLogger(true)
 
-	logger_obj.Debug("Some debug print")
+	logger.Debug("Some debug print")
 }

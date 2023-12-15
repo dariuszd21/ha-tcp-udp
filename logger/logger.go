@@ -50,3 +50,13 @@ func NewLogger(printLogs bool) *Logger {
 		printLogs:   printLogs,
 	}
 }
+
+var LOGGER *Logger = NewLogger(true)
+
+func Debug(log_entry string) {
+	LOGGER.Debug(log_entry)
+}
+
+func Error(log_entry string) {
+	LOGGER.Error(log_entry)
+}

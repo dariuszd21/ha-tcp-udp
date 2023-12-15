@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 )
 
-const NONE = 0
-const ERROR = 1
-const DEBUG = 2
+const (
+	NONE = iota
+	ERROR
+	DEBUG
+)
 
 type Logger struct {
 	erorLogger  *log.Logger

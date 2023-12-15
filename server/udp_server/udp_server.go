@@ -44,18 +44,19 @@ func (server *UDPServer) Serve() {
 			if server.connections.Load() >= server.config.ConnectionsLimit {
 				logger.Debug("Server no longer accepts connections.")
 				time.Sleep(time.Second)
+				continue
 			}
 		}
 		buf := make([]byte, 1024)
 		n_bytes, addr, err := server.listener.ReadFrom(buf)
 		if err != nil {
 			logger.Errorf("Cannot read from: %s", err.Error())
-			return
+			continue
 		}
 		init_message, err := readInitMessage(buf, n_bytes)
 		if err != nil {
 			logger.Error("Cannot read init message")
-			return
+			continue
 		}
 		go server.handleConnection(addr, init_message, session_id_chan)
 	}

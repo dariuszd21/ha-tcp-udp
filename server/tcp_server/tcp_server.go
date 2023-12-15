@@ -36,18 +36,20 @@ func (server *TCPServer) Serve() {
 
 	session_id_chan := make(chan server_if.SessionIdOps)
 	go server_if.AssignSessionId(session_id_chan)
-
 	for {
 		if server.config.ConnectionsLimit != 0 {
 			// Check if connection limit is already reached
 			if server.connections.Load() >= server.config.ConnectionsLimit {
 				logger.Debug("Server no longer accepts connections.")
 				time.Sleep(time.Second)
+				continue
 			}
 		}
+
 		conn, err := server.listener.Accept()
 		if err != nil {
 			logger.Errorf("Cannot accept connection: %s", err.Error())
+			continue
 		}
 		go server.handleConnection(conn, session_id_chan)
 	}

@@ -19,8 +19,10 @@ func runServer(server server_if.Server) {
 func main() {
 	tcp_port := flag.Int("tcp_port", 12000, "Port on which TCP server listen")
 	tcp_host := flag.String("tcp_host", "localhost", "Address on which TCP server listen")
+	tcp_connection_limit := flag.Uint64("tcp_connections_limit", 0, "Maximum number of opened connections. 0 means no Limit")
 	udp_port := flag.Int("udp_port", 13000, "Port on which UDP server listen")
 	udp_host := flag.String("udp_host", "localhost", "Address on which UDP server listen")
+	udp_connection_limit := flag.Uint64("udp_connections_limit", 0, "Maximum number of opened connections. 0 means no Limit")
 	print_logs := flag.Bool("print_logs", false, "Check if logs should be printed using PrintLn")
 	log_level := flag.Int("log_level", logger.NONE, "Log level: 0 - None, 1 - Error, 2 - Debug")
 
@@ -32,12 +34,14 @@ func main() {
 	server_config := server_if.ServerConfig{
 		Host: *tcp_host,
 		Port: *tcp_port,
+		ConnectionsLimit: *tcp_connection_limit,
 	}
 	server := tcp_server.CreateServer(&server_config)
 	go runServer(server)
 	udp_server_config := server_if.ServerConfig{
 		Host: *udp_host,
 		Port: *udp_port,
+		ConnectionsLimit: *udp_connection_limit,
 	}
 	udp_server := udp_server.CreateServer(&udp_server_config)
 	go runServer(udp_server)

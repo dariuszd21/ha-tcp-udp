@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"ha-tcp-udp/logger"
+	"ha-tcp-udp/server_if"
 	"net"
 	"sync/atomic"
 	"time"
@@ -19,33 +20,6 @@ type TCPServer struct {
 	config      *ServerConfig
 	listener    *net.Listener
 	connections atomic.Uint64
-}
-
-type InitMessage struct {
-	SessionId   uint64 `json:"session_id"`
-	LastMessage uint64 `json:"last_message"`
-}
-
-type SessionEstablishment struct {
-	SessionId uint64 `json:"session_id"`
-}
-
-type SessionIdOps struct {
-	resp chan uint64
-}
-
-func assignSessionId(req chan SessionIdOps) {
-	var i uint64 = 1
-
-	for {
-		request := <-req
-		request.resp <- i
-		logger.Debugf("Assigning session id: %d", i)
-		i++
-		if i == 0 {
-			i++
-		}
-	}
 }
 
 func (server *TCPServer) Bind() {
@@ -65,8 +39,8 @@ func (server *TCPServer) Serve() {
 
 	defer (*server.listener).Close()
 
-	session_id_chan := make(chan SessionIdOps)
-	go assignSessionId(session_id_chan)
+	session_id_chan := make(chan server_if.SessionIdOps)
+	go server_if.AssignSessionId(session_id_chan)
 
 	for {
 		// TODO: Add handling sigterm
@@ -86,7 +60,7 @@ func (server *TCPServer) Serve() {
 	}
 }
 
-func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel chan SessionIdOps) {
+func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel chan server_if.SessionIdOps) {
 	logger.Debug("Connection opened")
 	server.connections.Add(1)
 	defer server.closeConnection(connection)
@@ -104,7 +78,7 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 		return
 	}
 
-	var init_message InitMessage
+	var init_message server_if.InitMessage
 	err = json.Unmarshal(buf[:read_bytes], &init_message)
 
 	if err != nil {
@@ -118,13 +92,13 @@ func (server *TCPServer) handleConnection(connection net.Conn, assignIdChannel c
 		logger.Debugf("Session: %d reestablished", init_message.SessionId)
 	} else {
 		session_id_resp := make(chan uint64)
-		session_id_ops := SessionIdOps{
-			session_id_resp,
+		session_id_ops := server_if.SessionIdOps{
+			Resp: session_id_resp,
 		}
 		assignIdChannel <- session_id_ops
 		session_id := <-session_id_resp
 
-		session_est, err := json.Marshal(&SessionEstablishment{SessionId: session_id})
+		session_est, err := json.Marshal(&server_if.SessionEstablishment{SessionId: session_id})
 		if err != nil {
 			logger.Errorf("Cannot encode session establishment: %s", session_est)
 			return
